@@ -16,9 +16,24 @@
     ],
     "require": {
         "composer/installers": "^1.9",
+        "cweagans/composer-patches": "^1.7",
+        "drupal/admin_toolbar": "^2.4",
+        "drupal/config_split": "^1.7",
         "drupal/core-composer-scaffold": "^9.1",
         "drupal/core-project-message": "^9.1",
         "drupal/core-recommended": "^9.1",
+        "drupal/ds": "^3.9",
+        "drupal/environment_indicator": "^4.0",
+        "drupal/feeds": "^3.0-alpha10",
+        "drupal/image_url_formatter": "^1.0",
+        "drupal/layout_builder_modal": "^1.1",
+        "drupal/layout_paragraphs": "^1.0-beta",
+        "drupal/page_manager": "^4.0-beta-6",
+        "drupal/panelizer": "^4.4",
+        "drupal/panels": "^4.6",
+        "drupal/paragraphs": "^1.12",
+        "drupal/search_api": "^1.19",
+        "drupal/views_json_source": "^1.0",
         "drush/drush": "^10"
     },
     "conflict": {
@@ -63,6 +78,12 @@
             "web/themes/custom/{$name}": [
                 "type:drupal-custom-theme"
             ]
+        },
+        "patches": {
+            "drupal/feeds": {
+                "Add a mapping target to media field": "https://www.drupal.org/files/issues/2021-06-03/feeds-media-image-2928904-47.patch",
+                "Add a mapping target to media field for files": "./patches/add-media-file-target.patch"
+            }
         },
         "drupal-core-project-message": {
             "include-keys": [

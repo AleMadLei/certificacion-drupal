@@ -1,0 +1,152 @@
+diff --git a/src/Feeds/Target/MediaFile.php b/src/Feeds/Target/MediaFile.php
+new file mode 100644
+index 00000000..65ddf27d
+--- /dev/null
++++ b/src/Feeds/Target/MediaFile.php
+@@ -0,0 +1,146 @@
++<?php
++
++namespace Drupal\feeds\Feeds\Target;
++
++use Drupal\Core\Entity\EntityFieldManagerInterface;
++use Drupal\Core\Entity\EntityInterface;
++use Drupal\Core\Entity\EntityRepositoryInterface;
++use Drupal\Core\Entity\EntityTypeManagerInterface;
++use Drupal\Core\File\FileSystemInterface;
++use Drupal\Core\Utility\Token;
++use Drupal\feeds\Exception\EmptyFeedException;
++use Drupal\feeds\Exception\ReferenceNotFoundException;
++use Drupal\feeds\Exception\TargetValidationException;
++use Drupal\feeds\FeedInterface;
++use Drupal\feeds\StateInterface;
++use Drupal\media\Entity\Media;
++use GuzzleHttp\ClientInterface;
++use Symfony\Component\DependencyInjection\ContainerInterface;
++
++/**
++ * Defines a file field mapper.
++ *
++ * @FeedsTarget(
++ *   id = "media_file",
++ *   field_types = {"file"}
++ * )
++ */
++class MediaFile extends File {
++
++  /**
++   * {@inheritDoc}
++   */
++  public function __construct(
++    array $configuration,
++    $plugin_id,
++    array $plugin_definition,
++    EntityTypeManagerInterface $entity_type_manager,
++    ClientInterface $client,
++    Token $token,
++    EntityFieldManagerInterface $entity_field_manager,
++    EntityRepositoryInterface $entity_repository,
++    FileSystemInterface $file_system
++  ) {
++    $this->client = $client;
++    $this->token = $token;
++    parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $client, $token, $entity_field_manager, $entity_repository, $file_system);
++    $fileSettings = $entity_field_manager->getFieldDefinitions('media', 'file')['field_media_file']->getSettings();
++    $this->fileExtensions = explode(' ', $fileSettings['file_extensions']);
++    $this->settings['uri_scheme'] = $fileSettings['uri_scheme'];
++    $this->settings['file_directory'] = $fileSettings['file_directory'];
++    $this->settings['target_type'] = 'media';
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
++    return new static(
++      $configuration,
++      $plugin_id,
++      $plugin_definition,
++      $container->get('entity_type.manager'),
++      $container->get('http_client'),
++      $container->get('token'),
++      $container->get('entity_field.manager'),
++      $container->get('entity.repository'),
++      $container->get('file_system')
++    );
++  }
++
++  /**
++   * {@inheritDoc}
++   */
++  public function setTarget(FeedInterface $feed, EntityInterface $entity, $field_name, array $raw_values) {
++    $values = [];
++    $entity_target = $this->getEntityTarget($feed, $entity);
++    foreach ($raw_values as $delta => $columns) {
++      try {
++        // Remove query parameter from URL to prevent invalid extension error.
++        $columns['target_id'] = strtok($columns['target_id'], '?');
++        $this->prepareValue($delta, $columns);
++        if (!isset($media) && !empty($columns['target_id'])) {
++          // If we already have a Media entity with the current fid then we
++          // don't need a new one.
++          $query = $this->entityTypeManager->getStorage("media")->getQuery();
++          if ($mid = $query->condition('field_media_file', $columns['target_id'])->execute()) {
++            $mids = array_values($mid);
++            $mid = array_shift($mids);
++            // Do not add an existing image to avoid duplicates.
++            if ($entity_target) {
++              $item_list = $entity_target->get($field_name);
++              foreach ($item_list->getValue() as $v) {
++                if ($v['target_id'] == $mid) {
++                  continue 2;
++                }
++              }
++            }
++            $media = Media::load($mid);
++          }
++          else {
++            // Create a new media entity.
++            $media = Media::create([
++              'bundle' => 'file',
++              'name' => $entity->getTitle(),
++              'uid' => \Drupal::currentUser()->id(),
++              'field_media_file' => [
++                'target_id' => $columns['target_id'],
++              ],
++            ]);
++          }
++          $media->setPublished(TRUE)->save();
++          // Add media id as target id.
++          $columns['target_id'] = $media->id();
++        }
++        $values[] = $columns;
++        unset($media);
++      }
++      catch (ReferenceNotFoundException $e) {
++        // The referenced entity is not found. We need to enforce Feeds to try
++        // to import the same item again on the next import.
++        // Feeds stores a hash of every imported item in order to make the
++        // import process more efficient by ignoring items it has already seen.
++        // In this case we need to destroy the hash in order to be able to
++        // import the reference on a next import.
++        $entity->get('feeds_item')->hash = NULL;
++        $feed->getState(StateInterface::PROCESS)->setMessage($e->getFormattedMessage(), 'warning', TRUE);
++      }
++      catch (EmptyFeedException $e) {
++        // Nothing wrong here.
++      }
++      catch (TargetValidationException $e) {
++        // Validation failed.
++        $this->addMessage($e->getFormattedMessage(), 'error');
++      }
++    }
++
++    if (!empty($values) && $entity_target) {
++      $item_list = $entity_target->get($field_name);
++
++      // Append these values to the existing values.
++      $values = array_merge($item_list->getValue(), $values);
++      $item_list->setValue($values);
++    }
++  }
++
++}
