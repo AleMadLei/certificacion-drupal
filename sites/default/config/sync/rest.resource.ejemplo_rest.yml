@@ -1,0 +1,18 @@
+uuid: b8fbe3d3-4de7-44dd-a2f4-eea0411bf592
+langcode: en
+status: true
+dependencies:
+  module:
+    - ejemplo_rest
+    - serialization
+    - user
+id: ejemplo_rest
+plugin_id: ejemplo_rest
+granularity: resource
+configuration:
+  methods:
+    - GET
+  formats:
+    - json
+  authentication:
+    - cookie

@@ -1,0 +1,30 @@
+uuid: 6d52d1c4-12e8-4b44-8bda-ff114a47bf33
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - options
+id: node.field_idioma
+field_name: field_idioma
+entity_type: node
+type: list_string
+settings:
+  allowed_values:
+    -
+      value: en
+      label: Inglés
+    -
+      value: es
+      label: Español
+    -
+      value: it
+      label: Italianio
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

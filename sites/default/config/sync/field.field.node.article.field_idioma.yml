@@ -1,0 +1,21 @@
+uuid: dcd720ec-969d-420f-86d2-a953bcd958cd
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_idioma
+    - node.type.article
+  module:
+    - options
+id: node.article.field_idioma
+field_name: field_idioma
+entity_type: node
+bundle: article
+label: Idioma
+description: ''
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -1,0 +1,5 @@
+name: Ejemplo REST API
+description: Ejemplo de funcionalidad con REST.
+package: AleMadLei.Tech - Estudio
+type: module
+core_version_requirement: ^9

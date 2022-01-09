@@ -1,0 +1,5 @@
+name: certification
+recipe: drupal9
+config:
+  webroot: ./
+  php: "7.4"
